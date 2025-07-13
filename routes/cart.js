@@ -5,6 +5,7 @@ const {
   createOrGetCart,
   addOrUpdateCartItem,
   getCartContents,
+  checkoutCart
 } = require('../controllers/cartController');
 
 const { authenticateToken } = require('../middleware/auth');
@@ -17,5 +18,8 @@ router.post('/:cartId', authenticateToken, addOrUpdateCartItem);
 
 // Get all items in a cart
 router.get('/:cartId', authenticateToken, getCartContents);
+
+//cart checkout
+router.post('/:cartId/checkout', authenticateToken, checkoutCart);
 
 module.exports = router;

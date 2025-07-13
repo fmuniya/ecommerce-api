@@ -169,4 +169,5 @@ module.exports = {
   createOrGetCart,
   addOrUpdateCartItem,
   getCartContents,
+  checkoutCart
 };
