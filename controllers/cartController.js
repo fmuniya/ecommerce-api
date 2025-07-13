@@ -105,6 +105,66 @@ const getCartContents = async (req, res) => {
   }
 };
 
+//Checkout cart
+const checkoutCart = async (req, res) => {
+  const { cartId } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    // Check that cart exists and belongs to the user
+    const cartResult = await pool.query('SELECT * FROM carts WHERE id = $1 AND user_id = $2', [cartId, userId]);
+
+    if (cartResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Cart not found or does not belong to the user' });
+    }
+
+    // Get cart items
+    const itemsResult = await pool.query('SELECT * FROM cart_items WHERE cart_id = $1', [cartId]);
+
+    if (itemsResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    // Simulate payment processing (always succeeds)
+    const paymentSuccess = true;
+
+    if (!paymentSuccess) {
+      return res.status(402).json({ error: 'Payment failed' });
+    }
+
+    // Create order
+    const orderResult = await pool.query(
+      `INSERT INTO orders (user_id, cart_id, status, created_at)
+       VALUES ($1, $2, $3, NOW()) RETURNING *`,
+      [userId, cartId, 'paid']
+    );
+
+    const orderId = orderResult.rows[0].id;
+
+    // Create order_items based on cart_items
+    for (let item of itemsResult.rows) {
+      await pool.query(
+        `INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase)
+         VALUES ($1, $2, $3, 
+          (SELECT price FROM products WHERE id = $2))`,
+        [orderId, item.product_id, item.quantity]
+      );
+    }
+
+    // Optionally clear the cart
+    await pool.query('DELETE FROM cart_items WHERE cart_id = $1', [cartId]);
+
+    res.status(201).json({
+      message: 'Checkout successful, order created',
+      orderId: orderId,
+    });
+
+  } catch (err) {
+    console.error('Checkout error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   createOrGetCart,
   addOrUpdateCartItem,
