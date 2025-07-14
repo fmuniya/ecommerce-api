@@ -4,8 +4,12 @@ const usersRouter = require('./routes/users');
 const productsRouter = require('./routes/products');
 const cartRouter = require('./routes/cart');
 const ordersRouter = require('./routes/orders');
+const setupSwagger = require('./swagger');
 
 app.use(express.json());
+
+// Swagger docs
+setupSwagger(app);
 
 app.use('/api/users', usersRouter);
 app.use('/api/products', productsRouter);

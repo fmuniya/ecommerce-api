@@ -7,7 +7,7 @@ const {
     deleteOrder,
     updateOrderStatus
 } = require('../controllers/ordersController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
 //USER or ADMIN
 router.get('/', authenticateToken, getUserOrders);
