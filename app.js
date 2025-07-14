@@ -8,13 +8,13 @@ const setupSwagger = require('./swagger');
 
 app.use(express.json());
 
-// Swagger docs
-setupSwagger(app);
-
 app.use('/api/users', usersRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/cart', cartRouter);
 app.use('/api/orders', ordersRouter);
+
+// Swagger docsroute
+setupSwagger(app);
 
 app.get('/', (req, res) => {
   res.send('E-Commerce API running');
