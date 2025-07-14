@@ -8,7 +8,10 @@ const authenticateToken = (req, res, next) => {
   if (!token) return res.status(401).json({ error: 'Token missing' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (err) {
+      console.error('JWT verify error:', err.message);  // Add this for better debugging
+      return res.status(403).json({ error: 'Invalid token' });
+    }
     req.user = user; // userId, email, role, etc.
     next();
   });

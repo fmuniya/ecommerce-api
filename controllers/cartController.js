@@ -112,7 +112,10 @@ const checkoutCart = async (req, res) => {
 
   try {
     // Check that cart exists and belongs to the user
-    const cartResult = await pool.query('SELECT * FROM carts WHERE id = $1 AND user_id = $2', [cartId, userId]);
+    const cartResult = await pool.query(
+      'SELECT * FROM carts WHERE id = $1 AND user_id = $2',
+      [cartId, userId]
+    );
 
     if (cartResult.rows.length === 0) {
       return res.status(404).json({ error: 'Cart not found or does not belong to the user' });
@@ -132,31 +135,39 @@ const checkoutCart = async (req, res) => {
       return res.status(402).json({ error: 'Payment failed' });
     }
 
-    // Create order
+    // ✅ Calculate total amount
+    let totalAmount = 0;
+    for (const item of itemsResult.rows) {
+      const productRes = await pool.query('SELECT price FROM products WHERE id = $1', [item.product_id]);
+      const productPrice = productRes.rows[0].price;
+      totalAmount += productPrice * item.quantity;
+    }
+
+    // ✅ Create order with total_amount
     const orderResult = await pool.query(
-      `INSERT INTO orders (user_id, cart_id, status, created_at)
+      `INSERT INTO orders (user_id, total_amount, status, created_at)
        VALUES ($1, $2, $3, NOW()) RETURNING *`,
-      [userId, cartId, 'paid']
+      [userId, totalAmount, 'paid']
     );
 
     const orderId = orderResult.rows[0].id;
 
-    // Create order_items based on cart_items
-    for (let item of itemsResult.rows) {
+    // ✅ Create order_items based on cart_items
+    for (const item of itemsResult.rows) {
       await pool.query(
-        `INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase)
-         VALUES ($1, $2, $3, 
-          (SELECT price FROM products WHERE id = $2))`,
+        `INSERT INTO order_items (order_id, product_id, quantity, price)
+         VALUES ($1, $2, $3, (SELECT price FROM products WHERE id = $2))`,
         [orderId, item.product_id, item.quantity]
       );
     }
 
-    // Optionally clear the cart
+    // ✅ Clear cart
     await pool.query('DELETE FROM cart_items WHERE cart_id = $1', [cartId]);
 
     res.status(201).json({
       message: 'Checkout successful, order created',
-      orderId: orderId,
+      orderId,
+      totalAmount
     });
 
   } catch (err) {
@@ -164,6 +175,7 @@ const checkoutCart = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 module.exports = {
   createOrGetCart,
